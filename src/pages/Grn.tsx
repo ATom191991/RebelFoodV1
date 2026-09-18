@@ -25,8 +25,7 @@ export default function Grn() {
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <ShieldCheck size={15} className="mt-0.5 shrink-0" />
         <span>
-          Spark only prompts physical verification for SKUs flagged from 3-month loss history. Non-flagged lines
-          auto-pass at invoiced quantity — no extra work for staff.
+          Physical verification for flagged SKUs
         </span>
       </div>
 
