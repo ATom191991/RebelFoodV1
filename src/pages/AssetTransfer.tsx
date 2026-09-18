@@ -21,7 +21,7 @@ export default function AssetTransfer() {
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <ArrowLeftRight size={15} className="mt-0.5 shrink-0" />
         <span>
-          Source Kitchen Lead initiates a transfer; the receiving Kitchen Lead confirms receipt before the asset's
+          Source Kitchen Manager initiates a transfer; the receiving Kitchen Manager confirms receipt before the asset's
           location updates.
         </span>
       </div>
