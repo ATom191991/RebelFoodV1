@@ -3,40 +3,50 @@ import {
   INITIAL_GRNS,
   INITIAL_PACKAGING_COUNTS,
   INITIAL_WASTE,
-  INITIAL_EXCEPTIONS,
+  INITIAL_CASH,
+  INITIAL_ASSETS,
+  PHYSICAL_REGISTER,
   PACKAGING_ITEMS,
+  TODAY,
   skuById,
   packagingById,
   expectedUsage,
-  WASTE_TYPICAL_QTY,
-  WASTE_ANOMALY_MULTIPLIER,
-  TODAY,
-  KITCHEN,
 } from "../data/mockData";
 import type {
   GrnRecord,
   PackagingCountRecord,
   WasteSku,
-  ExceptionRecord,
-  ExceptionStatus,
+  CashReconciliation,
+  Asset,
+  PhysicalRegisterEntry,
+  AssetVerification,
 } from "../data/types";
-
-let exceptionSeq = INITIAL_EXCEPTIONS.length + 1;
-const nextExceptionId = () => `exc-${exceptionSeq++}`;
 
 interface SparkState {
   grns: GrnRecord[];
   packagingCounts: PackagingCountRecord[];
   waste: WasteSku[];
   wasteShiftSubmitted: boolean;
-  exceptions: ExceptionRecord[];
+  cash: CashReconciliation;
+  assets: Asset[];
+  physicalRegister: PhysicalRegisterEntry[];
 
   verifyGrnLine: (grnId: string, lineId: string, actualQty: number) => void;
   submitPackagingCount: (packagingId: string, physicalCount: number, reason?: string) => void;
   setWasteQty: (skuId: string, qty: number | null) => void;
   markNoWaste: (skuId: string) => void;
   submitWasteShift: () => void;
-  setExceptionStatus: (id: string, status: ExceptionStatus) => void;
+  submitCod: (actualCod: number, reason?: string) => void;
+
+  createAssetFromRegisterEntry: (entryId: string) => void;
+  verifyAsset: (assetId: string) => void;
+  reassignAssetKitchen: (assetId: string, kitchen: string) => void;
+  initiateTransfer: (assetId: string, destinationKitchen: string) => void;
+  confirmReceipt: (assetId: string) => void;
+  raiseScrapRequest: (assetId: string, reason: string) => void;
+  approveScrap: (assetId: string) => void;
+  rejectScrap: (assetId: string) => void;
+  confirmDisposal: (assetId: string) => void;
 }
 
 export const useSparkStore = create<SparkState>((set, get) => ({
@@ -44,15 +54,16 @@ export const useSparkStore = create<SparkState>((set, get) => ({
   packagingCounts: INITIAL_PACKAGING_COUNTS,
   waste: INITIAL_WASTE,
   wasteShiftSubmitted: false,
-  exceptions: INITIAL_EXCEPTIONS,
+  cash: INITIAL_CASH,
+  assets: INITIAL_ASSETS,
+  physicalRegister: PHYSICAL_REGISTER,
 
   verifyGrnLine: (grnId, lineId, actualQty) => {
     const grn = get().grns.find((g) => g.id === grnId);
     const line = grn?.lines.find((l) => l.id === lineId);
     if (!grn || !line) return;
     const sku = skuById(line.skuId);
-    const varianceQty = actualQty - line.orderedQty;
-    const varianceValue = Math.abs(varianceQty) * sku.unitValue;
+    const varianceValue = Math.abs(actualQty - line.orderedQty) * sku.unitValue;
     const exceedsTolerance = sku.tolerance ? varianceValue > sku.tolerance.lossValueTolerance : false;
 
     set((state) => ({
@@ -69,23 +80,6 @@ export const useSparkStore = create<SparkState>((set, get) => ({
             }
       ),
     }));
-
-    if (exceedsTolerance) {
-      const unitLabel = sku.unit === "litres" ? "L" : sku.unit;
-      const record: ExceptionRecord = {
-        id: nextExceptionId(),
-        date: TODAY,
-        kitchen: grn.kitchen,
-        sku: sku.name,
-        module: "GRN",
-        issue: "Material receiving variance detected",
-        variance: `${varianceQty > 0 ? "+" : ""}${varianceQty.toFixed(1)} ${unitLabel}`,
-        financialImpact: Math.round(varianceValue),
-        status: "Open",
-        owner: "Receiving Team",
-      };
-      set((state) => ({ exceptions: [record, ...state.exceptions] }));
-    }
   },
 
   submitPackagingCount: (packagingId, physicalCount, reason) => {
@@ -117,22 +111,6 @@ export const useSparkStore = create<SparkState>((set, get) => ({
             }
       ),
     }));
-
-    if (aboveTolerance) {
-      const record: ExceptionRecord = {
-        id: nextExceptionId(),
-        date: TODAY,
-        kitchen: KITCHEN,
-        sku: item.name,
-        module: "Packaging",
-        issue: "Packaging count variance above tolerance",
-        variance: `${variance > 0 ? "+" : ""}${variance} units`,
-        financialImpact: Math.round(Math.abs(variance) * item.unitCost),
-        status: "Open",
-        owner: "Shift Lead",
-      };
-      set((state) => ({ exceptions: [record, ...state.exceptions] }));
-    }
   },
 
   setWasteQty: (skuId, qty) => {
@@ -148,39 +126,91 @@ export const useSparkStore = create<SparkState>((set, get) => ({
   },
 
   submitWasteShift: () => {
-    const { waste } = get();
-    const newExceptions: ExceptionRecord[] = [];
-
-    waste.forEach((w) => {
-      const qty = w.wasteQty ?? 0;
-      const sku = skuById(w.skuId);
-      const typical = WASTE_TYPICAL_QTY[w.skuId] ?? Infinity;
-      if (qty > typical * WASTE_ANOMALY_MULTIPLIER) {
-        newExceptions.push({
-          id: nextExceptionId(),
-          date: TODAY,
-          kitchen: KITCHEN,
-          sku: sku.name,
-          module: "Waste",
-          issue: "Waste quantity above typical shift pattern",
-          variance: `+${(qty - typical).toFixed(1)} ${sku.unit === "litres" ? "L" : sku.unit} vs typical`,
-          financialImpact: Math.round(qty * sku.unitValue),
-          status: "Under Review",
-          owner: "Shift Lead",
-        });
-      }
-    });
-
     set((state) => ({
       waste: state.waste.map((w) => ({ ...w, wasteQty: w.wasteQty ?? 0, recorded: true })),
       wasteShiftSubmitted: true,
-      exceptions: [...newExceptions, ...state.exceptions],
     }));
   },
 
-  setExceptionStatus: (id, status) => {
+  submitCod: (actualCod, reason) => {
+    set((state) => ({ cash: { ...state.cash, actualCod, reason, submitted: true } }));
+  },
+
+  createAssetFromRegisterEntry: (entryId) => {
+    const entry = get().physicalRegister.find((e) => e.id === entryId);
+    if (!entry) return;
+    const newAsset: Asset = {
+      id: `asset-${Date.now()}`,
+      tag: entry.tagSeen || `FA-PENDING-${entry.id}`,
+      name: entry.descriptionSeen,
+      category: "Unclassified",
+      kitchen: entry.kitchenSeen,
+      purchaseDate: "Unknown",
+      purchaseValue: 0,
+      status: "active",
+      verifiedByStaff: true,
+    };
     set((state) => ({
-      exceptions: state.exceptions.map((e) => (e.id !== id ? e : { ...e, status })),
+      assets: [...state.assets, newAsset],
+      physicalRegister: state.physicalRegister.map((e) => (e.id !== entryId ? e : { ...e, matchedAssetId: newAsset.id })),
+    }));
+  },
+
+  verifyAsset: (assetId) => {
+    set((state) => ({
+      assets: state.assets.map((a) => (a.id !== assetId ? a : { ...a, verifiedByStaff: true })),
+    }));
+  },
+
+  reassignAssetKitchen: (assetId, kitchen) => {
+    set((state) => ({
+      assets: state.assets.map((a) => (a.id !== assetId ? a : { ...a, kitchen, verifiedByStaff: true })),
+    }));
+  },
+
+  initiateTransfer: (assetId, destinationKitchen) => {
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id !== assetId ? a : { ...a, status: "in_transit", destinationKitchen, transferInitiatedBy: "Shift Lead" }
+      ),
+    }));
+  },
+
+  confirmReceipt: (assetId) => {
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id !== assetId || !a.destinationKitchen
+          ? a
+          : { ...a, kitchen: a.destinationKitchen, status: "active", destinationKitchen: undefined, transferInitiatedBy: undefined }
+      ),
+    }));
+  },
+
+  raiseScrapRequest: (assetId, reason) => {
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id !== assetId ? a : { ...a, status: "scrap_requested", scrapReason: reason, scrapRequestedBy: "Shift Lead" }
+      ),
+    }));
+  },
+
+  approveScrap: (assetId) => {
+    set((state) => ({
+      assets: state.assets.map((a) => (a.id !== assetId ? a : { ...a, status: "scrap_approved" })),
+    }));
+  },
+
+  rejectScrap: (assetId) => {
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id !== assetId ? a : { ...a, status: "active", scrapReason: undefined, scrapRequestedBy: undefined }
+      ),
+    }));
+  },
+
+  confirmDisposal: (assetId) => {
+    set((state) => ({
+      assets: state.assets.map((a) => (a.id !== assetId ? a : { ...a, status: "scrapped", disposalDate: TODAY })),
     }));
   },
 }));
@@ -196,44 +226,21 @@ export function selectPendingVerificationCount(grns: GrnRecord[]) {
   return selectFlaggedGrnLines(grns).filter(({ line }) => line.status === "pending_verification").length;
 }
 
-export function selectPercentFlaggedVerified(grns: GrnRecord[]) {
-  const flagged = selectFlaggedGrnLines(grns);
-  if (flagged.length === 0) return 100;
-  const verified = flagged.filter(({ line }) => line.status !== "pending_verification").length;
-  return Math.round((verified / flagged.length) * 100);
-}
-
-export function selectPackagingAlertCount(exceptions: ExceptionRecord[]) {
-  return exceptions.filter((e) => e.module === "Packaging" && e.status !== "Resolved").length;
-}
-
 export function selectPercentPackagingCountsCompleted(counts: PackagingCountRecord[]) {
   const total = PACKAGING_ITEMS.length;
   const done = counts.filter((c) => c.status !== "not_counted" && c.status !== "above_tolerance_pending_reason").length;
   return Math.round((done / total) * 100);
 }
 
-export function selectPercentWasteRecorded(waste: WasteSku[]) {
-  const done = waste.filter((w) => w.recorded).length;
-  return Math.round((done / waste.length) * 100);
+/** Reconciliation status of a system asset against today's physical register — computed, not stored. */
+export function selectAssetVerification(asset: Asset, register: PhysicalRegisterEntry[]): AssetVerification {
+  if (asset.verifiedByStaff) return "verified";
+  const entry = register.find((e) => e.tagSeen && e.tagSeen === asset.tag);
+  if (!entry) return "missing";
+  if (entry.kitchenSeen !== asset.kitchen) return "kitchen_mismatch";
+  return "pending_confirmation";
 }
 
-export function selectUnexplainedLossValue(exceptions: ExceptionRecord[]) {
-  return exceptions.filter((e) => e.status !== "Resolved").reduce((sum, e) => sum + e.financialImpact, 0);
-}
-
-export function selectReceivingVarianceValue(exceptions: ExceptionRecord[]) {
-  return exceptions.filter((e) => e.module === "GRN").reduce((sum, e) => sum + e.financialImpact, 0);
-}
-
-export function selectPackagingVarianceValue(exceptions: ExceptionRecord[]) {
-  return exceptions.filter((e) => e.module === "Packaging").reduce((sum, e) => sum + e.financialImpact, 0);
-}
-
-export function selectWasteValueCaptured(waste: WasteSku[], baseline: number) {
-  const todayValue = waste.reduce((sum, w) => {
-    if (!w.wasteQty) return sum;
-    return sum + w.wasteQty * skuById(w.skuId).unitValue;
-  }, 0);
-  return baseline + todayValue;
+export function selectUnregisteredEntries(register: PhysicalRegisterEntry[]) {
+  return register.filter((e) => !e.matchedAssetId);
 }

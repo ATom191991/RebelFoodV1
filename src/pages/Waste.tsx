@@ -2,7 +2,7 @@ import { useState } from "react";
 import Layout from "../components/Layout";
 import Card from "../components/Card";
 import { useSparkStore } from "../store/useSparkStore";
-import { WASTE_SKU_IDS, WASTE_TYPICAL_QTY, skuById, TODAY, KITCHEN } from "../data/mockData";
+import { WASTE_SKU_IDS, skuById, TODAY, KITCHEN } from "../data/mockData";
 import { formatInr } from "../lib/format";
 import { CheckCircle2, Target } from "lucide-react";
 
@@ -49,7 +49,7 @@ export default function Waste() {
     const totalCapturedValue = submittedRows.reduce((sum, r) => sum + r.value, 0);
 
     return (
-      <Layout title="Waste — End-of-Shift Capture">
+      <Layout title="Waste Capture">
         <Card className="mx-auto max-w-lg text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
             <CheckCircle2 size={24} className="text-emerald-600" />
@@ -80,7 +80,7 @@ export default function Waste() {
   }
 
   return (
-    <Layout title="Waste — End-of-Shift Capture">
+    <Layout title="Waste Capture">
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <Target size={15} className="mt-0.5 shrink-0" />
         <span>
@@ -102,9 +102,7 @@ export default function Waste() {
             <div key={sku.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
               <div className="min-w-[160px]">
                 <p className="text-[14px] font-semibold text-charcoal-900">{sku.name}</p>
-                <p className="text-[11.5px] text-charcoal-500">
-                  Unit value {formatInr(sku.unitValue)}/{unitLabel} · typical {WASTE_TYPICAL_QTY[sku.id]} {unitLabel}/shift
-                </p>
+                <p className="text-[11.5px] text-charcoal-500">Unit value {formatInr(sku.unitValue)}/{unitLabel}</p>
               </div>
 
               <div className="flex items-center gap-3">

@@ -21,7 +21,7 @@ export default function Grn() {
   const [activeLine, setActiveLine] = useState<{ grnId: string; line: GrnLine } | null>(null);
 
   return (
-    <Layout title="GRN — Goods Receipt">
+    <Layout title="GRN Verification">
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <ShieldCheck size={15} className="mt-0.5 shrink-0" />
         <span>

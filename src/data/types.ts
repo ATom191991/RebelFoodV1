@@ -79,18 +79,59 @@ export interface WasteSku {
   recorded: boolean;
 }
 
-export type ExceptionModule = "GRN" | "Packaging" | "Waste";
-export type ExceptionStatus = "Open" | "Under Review" | "Resolved";
-
-export interface ExceptionRecord {
-  id: string;
-  date: string;
+// ---------------------------------------------------------------------------
+// CASH — COD reconciliation, once per shift.
+// ---------------------------------------------------------------------------
+export interface CashReconciliation {
   kitchen: string;
-  sku: string;
-  module: ExceptionModule;
-  issue: string;
-  variance: string;
-  financialImpact: number;
-  status: ExceptionStatus;
-  owner: string;
+  date: string;
+  shift: string;
+  ordersCount: number;
+  systemCod: number;
+  actualCod: number | null;
+  tolerance: number;
+  reason?: string;
+  updatedBy: string;
+  submitted: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// FIXED ASSETS
+// ---------------------------------------------------------------------------
+export type AssetLifecycleStatus =
+  | "active"
+  | "in_transit"
+  | "scrap_requested"
+  | "scrap_approved"
+  | "scrapped";
+
+export interface Asset {
+  id: string;
+  tag: string;
+  name: string;
+  category: string;
+  kitchen: string; // current kitchen assignment
+  purchaseDate: string;
+  purchaseValue: number;
+  status: AssetLifecycleStatus;
+  verifiedByStaff?: boolean; // manually confirmed during Register reconciliation
+
+  // Transfer in-flight fields
+  destinationKitchen?: string;
+  transferInitiatedBy?: string;
+
+  // Scrap in-flight fields
+  scrapReason?: string;
+  scrapRequestedBy?: string;
+  disposalDate?: string;
+}
+
+export interface PhysicalRegisterEntry {
+  id: string;
+  tagSeen: string; // blank when the item has no tag (unregistered)
+  descriptionSeen: string;
+  kitchenSeen: string;
+  matchedAssetId?: string;
+}
+
+export type AssetVerification = "verified" | "pending_confirmation" | "kitchen_mismatch" | "missing" | "unregistered";

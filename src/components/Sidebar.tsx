@@ -1,19 +1,36 @@
 import { NavLink } from "react-router-dom";
 import {
-  LayoutGrid,
   ClipboardCheck,
   PackageSearch,
   Trash2,
-  TriangleAlert,
+  Wallet,
+  ClipboardList,
+  ArrowLeftRight,
+  Recycle,
   Zap,
 } from "lucide-react";
 
-const NAV_ITEMS = [
-  { to: "/", label: "Overview", icon: LayoutGrid, end: true },
-  { to: "/grn", label: "GRN", icon: ClipboardCheck },
-  { to: "/packaging", label: "Packaging", icon: PackageSearch },
-  { to: "/waste", label: "Waste", icon: Trash2 },
-  { to: "/exceptions", label: "Exceptions", icon: TriangleAlert },
+const NAV_GROUPS = [
+  {
+    label: "Inventory",
+    items: [
+      { to: "/grn", label: "GRN Verification", icon: ClipboardCheck },
+      { to: "/packaging", label: "Packaging Reconciliation", icon: PackageSearch },
+      { to: "/waste", label: "Waste Capture", icon: Trash2 },
+    ],
+  },
+  {
+    label: "Cash",
+    items: [{ to: "/cod", label: "COD Reconciliation", icon: Wallet }],
+  },
+  {
+    label: "Fixed Assets",
+    items: [
+      { to: "/assets/register", label: "Register", icon: ClipboardList },
+      { to: "/assets/transfer", label: "Transfer", icon: ArrowLeftRight },
+      { to: "/assets/scrap", label: "Scrap / Dispose", icon: Recycle },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -25,28 +42,36 @@ export default function Sidebar() {
         </div>
         <div>
           <div className="text-[15px] font-bold leading-tight tracking-tight">Spark</div>
-          <div className="text-[11px] leading-tight text-charcoal-500">Inventory Control</div>
+          <div className="text-[11px] leading-tight text-charcoal-500">Operations Control</div>
         </div>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              [
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors",
-                isActive
-                  ? "bg-white/10 text-white"
-                  : "text-charcoal-500 hover:bg-white/5 hover:text-white",
-              ].join(" ")
-            }
-          >
-            <Icon size={17} strokeWidth={2} />
-            {label}
-          </NavLink>
+      <nav className="flex-1 space-y-5 px-3">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-charcoal-500">
+              {group.label}
+            </p>
+            <div className="space-y-0.5">
+              {group.items.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    [
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+                      isActive
+                        ? "bg-white/10 text-white"
+                        : "text-charcoal-500 hover:bg-white/5 hover:text-white",
+                    ].join(" ")
+                  }
+                >
+                  <Icon size={17} strokeWidth={2} />
+                  {label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 

@@ -9,16 +9,16 @@ import type {
   DishPackagingMap,
   PackagingCountRecord,
   WasteSku,
-  ExceptionRecord,
+  CashReconciliation,
+  Asset,
+  PhysicalRegisterEntry,
 } from "./types";
 
 export const KITCHEN = "Kitchen 2214";
 export const SHIFT = "Dinner";
 export const USER_ROLE = "Shift Lead";
-export const TODAY = "17 Sep 2026";
-export const YESTERDAY = "16 Sep 2026";
-export const DAY_BEFORE = "15 Sep 2026";
-export const FOUR_DAYS_AGO = "14 Sep 2026";
+export const TODAY = "18 Sep 2026";
+export const KITCHENS = ["Kitchen 2214", "Kitchen 1187", "Kitchen 3390"];
 
 // ---------------------------------------------------------------------------
 // SKU MASTER — last-3-months loss frequency/value drives which SKUs Spark
@@ -225,74 +225,139 @@ export const INITIAL_PACKAGING_COUNTS: PackagingCountRecord[] = PACKAGING_ITEMS.
 // ---------------------------------------------------------------------------
 export const WASTE_SKU_IDS = ["sku-boneless-chicken", "sku-paneer", "sku-refined-oil"];
 
-/** Typical waste per shift, used only to flag unusually high (anomalous) waste — not a target or quota. */
-export const WASTE_TYPICAL_QTY: Record<string, number> = {
-  "sku-boneless-chicken": 1.5,
-  "sku-paneer": 1.2,
-  "sku-refined-oil": 3,
-};
-export const WASTE_ANOMALY_MULTIPLIER = 1.5;
-
 export const INITIAL_WASTE: WasteSku[] = WASTE_SKU_IDS.map((skuId) => ({
   skuId,
   wasteQty: null,
   recorded: false,
 }));
 
-/** Waste value already captured this week prior to today's shift (for Financial Impact framing). */
-export const WASTE_VALUE_CAPTURED_BASELINE = 4850;
+// ---------------------------------------------------------------------------
+// CASH — one COD reconciliation per shift.
+// ---------------------------------------------------------------------------
+export const INITIAL_CASH: CashReconciliation = {
+  kitchen: KITCHEN,
+  date: TODAY,
+  shift: SHIFT,
+  ordersCount: 184,
+  systemCod: 42600,
+  actualCod: null,
+  tolerance: 500,
+  updatedBy: USER_ROLE,
+  submitted: false,
+};
+
+export const COD_VARIANCE_REASONS = [
+  "Discount not recorded in system",
+  "Refund / order cancellation",
+  "Cash short at counter",
+  "Counting error",
+  "Other operational reason",
+];
 
 // ---------------------------------------------------------------------------
-// EXCEPTIONS — seeded with recent history so the Exceptions/Overview screens
-// aren't empty on first load; new ones are appended live as staff act.
+// FIXED ASSETS
 // ---------------------------------------------------------------------------
-export const INITIAL_EXCEPTIONS: ExceptionRecord[] = [
+export const SCRAP_REASONS = ["Beyond repair", "End of useful life", "Damaged beyond use", "Obsolete equipment"];
+
+export const INITIAL_ASSETS: Asset[] = [
   {
-    id: "exc-1",
-    date: TODAY,
-    kitchen: KITCHEN,
-    sku: "Mozzarella Cheese",
-    module: "GRN",
-    issue: "Material receiving variance detected",
-    variance: "-4 kg",
-    financialImpact: 1520,
-    status: "Under Review",
-    owner: "Receiving Team",
+    id: "asset-1",
+    tag: "FA-2214-001",
+    name: "Commercial Refrigerator - 400L",
+    category: "Refrigeration",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "12 Jun 2023",
+    purchaseValue: 185000,
+    status: "active",
   },
   {
-    id: "exc-2",
-    date: YESTERDAY,
-    kitchen: KITCHEN,
-    sku: "Chutney Box",
-    module: "Packaging",
-    issue: "Packaging count variance above tolerance",
-    variance: "-18 units",
-    financialImpact: 108,
-    status: "Open",
-    owner: "Shift Lead",
+    id: "asset-2",
+    tag: "FA-2214-002",
+    name: "Exhaust Hood System",
+    category: "Kitchen Equipment",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "3 Nov 2022",
+    purchaseValue: 96000,
+    status: "active",
   },
   {
-    id: "exc-3",
-    date: DAY_BEFORE,
-    kitchen: KITCHEN,
-    sku: "Paper Bag",
-    module: "Packaging",
-    issue: "Packaging count variance above tolerance",
-    variance: "-14 units",
-    financialImpact: 56,
-    status: "Under Review",
-    owner: "Shift Lead",
+    id: "asset-3",
+    tag: "FA-2214-003",
+    name: "POS Terminal",
+    category: "IT & Point of Sale",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "20 Jan 2024",
+    purchaseValue: 42000,
+    status: "active",
   },
   {
-    id: "exc-4",
-    date: FOUR_DAYS_AGO,
-    kitchen: KITCHEN,
-    sku: "Butter",
-    module: "GRN",
-    issue: "Material receiving variance detected",
-    variance: "-3.5 kg",
-    financialImpact: 1680,
-    status: "Resolved",
-    owner: "Receiving Team",
+    id: "asset-4",
+    tag: "FA-2214-004",
+    name: "Deep Fryer - Double Basket",
+    category: "Kitchen Equipment",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "15 Mar 2023",
+    purchaseValue: 68000,
+    status: "active",
   },
+  {
+    id: "asset-5",
+    tag: "FA-2214-005",
+    name: "Water Purifier - RO",
+    category: "Utilities",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "9 Aug 2021",
+    purchaseValue: 28000,
+    status: "active",
+  },
+  {
+    id: "asset-6",
+    tag: "FA-2214-006",
+    name: "Deep Freezer - 300L",
+    category: "Refrigeration",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "27 May 2022",
+    purchaseValue: 112000,
+    status: "active",
+  },
+  {
+    id: "asset-7",
+    tag: "FA-2214-007",
+    name: "Induction Cooktop",
+    category: "Kitchen Equipment",
+    kitchen: "Kitchen 2214",
+    purchaseDate: "1 Dec 2020",
+    purchaseValue: 34000,
+    status: "scrap_requested",
+    scrapReason: "Beyond repair",
+    scrapRequestedBy: "Shift Lead",
+  },
+  {
+    id: "asset-8",
+    tag: "FA-1187-010",
+    name: "Commercial Mixer - 20L",
+    category: "Kitchen Equipment",
+    kitchen: "Kitchen 1187",
+    purchaseDate: "18 Sep 2023",
+    purchaseValue: 54000,
+    status: "in_transit",
+    destinationKitchen: "Kitchen 2214",
+    transferInitiatedBy: "Kitchen 1187 Lead",
+  },
+];
+
+/**
+ * Mock physical register captured during today's asset audit walk at Kitchen 2214.
+ * Reconciliation status against system assets is computed, not stored — see
+ * selectAssetVerification in the store.
+ */
+export const PHYSICAL_REGISTER: PhysicalRegisterEntry[] = [
+  { id: "reg-1", tagSeen: "FA-2214-001", descriptionSeen: "Commercial Refrigerator 400L", kitchenSeen: "Kitchen 2214", matchedAssetId: "asset-1" },
+  { id: "reg-2", tagSeen: "FA-2214-002", descriptionSeen: "Exhaust Hood", kitchenSeen: "Kitchen 2214", matchedAssetId: "asset-2" },
+  { id: "reg-3", tagSeen: "FA-2214-003", descriptionSeen: "POS Terminal", kitchenSeen: "Kitchen 2214", matchedAssetId: "asset-3" },
+  { id: "reg-4", tagSeen: "FA-2214-004", descriptionSeen: "Deep Fryer - Double Basket", kitchenSeen: "Kitchen 2214", matchedAssetId: "asset-4" },
+  { id: "reg-5", tagSeen: "FA-2214-006", descriptionSeen: "Deep Freezer 300L", kitchenSeen: "Kitchen 1187", matchedAssetId: "asset-6" },
+  { id: "reg-6", tagSeen: "FA-2214-007", descriptionSeen: "Induction Cooktop", kitchenSeen: "Kitchen 2214", matchedAssetId: "asset-7" },
+  { id: "reg-7", tagSeen: "", descriptionSeen: "Microwave Oven - Commercial", kitchenSeen: "Kitchen 2214" },
+  // Note: no register entry references FA-2214-005 (Water Purifier) — it will show as Missing.
 ];
