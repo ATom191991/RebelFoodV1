@@ -40,8 +40,7 @@ export default function Packaging() {
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <Dices size={15} className="mt-0.5 shrink-0" />
         <span>
-          Today was randomly selected for a physical packaging count. Expected usage is calculated from today's
-          order volumes and packaging mapping — not manually estimated.
+          Today was randomly selected for a physical packaging count.
         </span>
       </div>
 
