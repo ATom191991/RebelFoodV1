@@ -25,8 +25,7 @@ export default function AssetRegister() {
       <div className="mb-6 flex items-start gap-2 rounded-lg border border-sky-100 bg-sky-50 px-4 py-2.5 text-[12.5px] text-sky-800">
         <ClipboardList size={15} className="mt-0.5 shrink-0" />
         <span>
-          System asset records are reconciled against today's physical register walk. Only mismatches, missing
-          items, and unregistered finds need staff action.
+          System asset records are imported from Physical Asset Register
         </span>
       </div>
 
