@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import InventoryDashboard from "./pages/InventoryDashboard";
 import Grn from "./pages/Grn";
 import Packaging from "./pages/Packaging";
 import Waste from "./pages/Waste";
@@ -12,6 +13,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/grn" replace />} />
+        <Route path="/inventory/dashboard" element={<InventoryDashboard />} />
         <Route path="/grn" element={<Grn />} />
         <Route path="/packaging" element={<Packaging />} />
         <Route path="/waste" element={<Waste />} />

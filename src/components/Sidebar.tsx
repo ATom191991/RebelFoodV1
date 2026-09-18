@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
+  LayoutDashboard,
   ClipboardCheck,
   PackageSearch,
   Trash2,
@@ -14,6 +15,7 @@ const NAV_GROUPS = [
   {
     label: "Inventory",
     items: [
+      { to: "/inventory/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/grn", label: "GRN Verification", icon: ClipboardCheck },
       { to: "/packaging", label: "Packaging Reconciliation", icon: PackageSearch },
       { to: "/waste", label: "Waste Capture", icon: Trash2 },
